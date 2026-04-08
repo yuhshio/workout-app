@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>筋トレ支援アプリ</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d0d0f;
+      --surface: #16171c;
+      --border: #2a2b33;
+      --accent: #e8ff47;
+      --accent2: #ff4f4f;
+      --text: #f0f0f0;
+      --muted: #666;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow-x: hidden;
+      overflow-y: auto;
+      position: relative;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      width: 600px; height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(232,255,71,0.06) 0%, transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    .container {
+      position: relative;
+      z-index: 1;
+      width: min(480px, 95vw);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 24px 0;
+    }
+    .header { display: flex; align-items: baseline; gap: 10px; }
+    .header h1 { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; letter-spacing: 0.1em; color: var(--accent); }
+    .header span { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.2em; text-transform: uppercase; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .card-title { font-size: 0.7rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+    .menu-list { display: flex; flex-direction: column; gap: 8px; }
+    .menu-item { display: grid; grid-template-columns: 1fr auto auto auto; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; }
+    .menu-item input[type="text"] { background: transparent; border: none; color: var(--text); font-family: 'Noto Sans JP', sans-serif; font-size: 0.9rem; outline: none; width: 100%; }
+    .menu-item input[type="number"] { background: transparent; border: none; color: var(--accent); font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; width: 40px; text-align: center; outline: none; -moz-appearance: textfield; }
+    .menu-item input[type="number"]::-webkit-inner-spin-button,
+    .menu-item input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .count-label { font-size: 0.65rem; color: var(--muted); margin-right: 2px; }
+    .count-wrap { display: flex; align-items: center; gap: 2px; }
+    .btn-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 2px 4px; border-radius: 4px; transition: color 0.2s; }
+    .btn-remove:hover { color: var(--accent2); }
+    .btn-add { width: 100%; margin-top: 10px; padding: 8px; background: transparent; border: 1px dashed var(--border); border-radius: 8px; color: var(--muted); font-family: 'Noto Sans JP', sans-serif; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+    .btn-add:hover { border-color: var(--accent); color: var(--accent); }
+    .settings-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .setting-item label { display: block; font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+    .setting-item input[type="number"] { width: 100%; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--accent); font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; text-align: center; outline: none; -moz-appearance: textfield; }
+    .setting-item input[type="number"]::-webkit-inner-spin-button,
+    .setting-item input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .setting-item input[type="number"]:focus { border-color: var(--accent); }
+    .display-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px 20px; text-align: center; min-height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+    .display-panel::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(232,255,71,0.03) 0%, transparent 60%); pointer-events: none; }
+    .progress-bar-track { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: var(--border); }
+    .progress-bar-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.4s ease; }
+    #status { font-size: 0.8rem; letter-spacing: 0.15em; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; min-height: 1.2em; }
+    #display { font-family: 'Bebas Neue', sans-serif; font-size: 5.5rem; line-height: 1; color: var(--text); transition: color 0.3s; letter-spacing: 0.05em; }
+    #display.highlight { color: var(--accent); }
+    #display.rest { color: #4faaff; }
+    #display.finish { color: var(--accent); font-size: 3rem; }
+    #sub-status { font-size: 0.75rem; color: var(--muted); margin-top: 8px; min-height: 1.2em; }
+    .btn-start { width: 100%; padding: 18px; background: var(--accent); border: none; border-radius: 10px; color: #0d0d0f; font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: 0.15em; cursor: pointer; position: relative; overflow: hidden; transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s; box-shadow: 0 0 30px rgba(232,255,71,0.2); }
+    .btn-start:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 0 40px rgba(232,255,71,0.35); }
+    .btn-start:active:not(:disabled) { transform: translateY(0); }
+    .btn-start:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
+    .btn-start .ripple { position: absolute; border-radius: 50%; background: rgba(0,0,0,0.15); transform: scale(0); animation: ripple 0.6s linear; pointer-events: none; }
+    @keyframes ripple { to { transform: scale(4); opacity: 0; } }
+    .set-indicators { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
+    .set-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); transition: background 0.3s; }
+    .set-dot.done { background: var(--accent); }
+    .set-dot.active { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+    @keyframes countPop { 0% { transform: scale(1.3); } 100% { transform: scale(1); } }
+    #display.pop { animation: countPop 0.15s ease-out; }
+    @keyframes finishGlow { 0%, 100% { text-shadow: 0 0 20px rgba(232,255,71,0.5); } 50% { text-shadow: 0 0 60px rgba(232,255,71,0.9); } }
+    #display.finish { animation: finishGlow 1.5s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>WORKOUT</h1>
+    <span>トレーニング支援</span>
+  </div>
+  <div class="card">
+    <div class="card-title">メニュー設定</div>
+    <div class="menu-list" id="menuList"></div>
+    <button class="btn-add" id="addItemBtn">＋ 種目を追加</button>
+  </div>
+  <div class="card">
+    <div class="card-title">タイミング設定</div>
+    <div class="settings-row">
+      <div class="setting-item">
+        <label>セット数</label>
+        <input type="number" id="setsInput" value="3" min="1" max="10">
+      </div>
+      <div class="setting-item">
+        <label>休憩時間（秒）</label>
+        <input type="number" id="prepInput" value="10" min="8" max="60">
+      </div>
+    </div>
+  </div>
+  <div class="display-panel">
+    <div id="status">準備ができたらスタート！</div>
+    <div id="display">0</div>
+    <div id="sub-status"></div>
+    <div class="set-indicators" id="setIndicators"></div>
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" id="progressBar"></div>
+    </div>
+  </div>
+  <button class="btn-start" id="startBtn">スタート！</button>
+</div>
+<script>
+  let menu = [
+    { name: "腕立て伏せ", counts: 10, interval: 2 },
+    { name: "腹筋", counts: 10, interval: 2 },
+    { name: "背筋", counts: 10, interval: 2, read: "はいきん" }
+  ];
+  const menuListEl = document.getElementById('menuList');
+  const addItemBtn = document.getElementById('addItemBtn');
+  const setsInput = document.getElementById('setsInput');
+  const prepInput = document.getElementById('prepInput');
+  const startBtn = document.getElementById('startBtn');
+  const display = document.getElementById('display');
+  const statusText = document.getElementById('status');
+  const subStatus = document.getElementById('sub-status');
+  const setIndicators = document.getElementById('setIndicators');
+  const progressBar = document.getElementById('progressBar');
+
+  function renderMenu() {
+    menuListEl.innerHTML = '';
+    menu.forEach((item, i) => {
+      const row = document.createElement('div');
+      row.className = 'menu-item';
+      row.innerHTML = `
+        <input type="text" value="${item.name}" placeholder="種目名" data-idx="${i}" data-field="name">
+        <div class="count-wrap">
+          <span class="count-label">回数</span>
+          <input type="number" value="${item.counts}" min="1" max="99" data-idx="${i}" data-field="counts">
+        </div>
+        <div class="count-wrap">
+          <span class="count-label">秒</span>
+          <input type="number" value="${item.interval || 2}" min="1" max="10" data-idx="${i}" data-field="interval">
+        </div>
+        <button class="btn-remove" data-idx="${i}">✕</button>
+      `;
+      menuListEl.appendChild(row);
+    });
+    menuListEl.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('input', e => {
+        const idx = +e.target.dataset.idx;
+        const field = e.target.dataset.field;
+        menu[idx][field] = (field === 'counts' || field === 'interval') ? +e.target.value : e.target.value;
+      });
+    });
+    menuListEl.querySelectorAll('.btn-remove').forEach(btn => {
+      btn.addEventListener('click', e => {
+        menu.splice(+e.target.dataset.idx, 1);
+        renderMenu();
+      });
+    });
+  }
+  addItemBtn.addEventListener('click', () => {
+    menu.push({ name: "新しい種目", counts: 10, interval: 2 });
+    renderMenu();
+  });
+  renderMenu();
+
+  function renderSetDots(total, current) {
+    setIndicators.innerHTML = '';
+    for (let i = 1; i <= total; i++) {
+      const d = document.createElement('div');
+      d.className = 'set-dot' + (i < current ? ' done' : i === current ? ' active' : '');
+      setIndicators.appendChild(d);
+    }
+  }
+  function speak(text) {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ja-JP';
+    window.speechSynthesis.speak(u);
+  }
+  function wait(sec) { return new Promise(r => setTimeout(r, sec * 1000)); }
+  function setDisplay(text, cls = '') {
+    display.className = '';
+    display.innerText = text;
+    if (cls) display.classList.add(cls);
+  }
+  function triggerPop() {
+    display.classList.remove('pop');
+    void display.offsetWidth;
+    display.classList.add('pop');
+  }
+  function setProgress(pct) { progressBar.style.width = pct + '%'; }
+
+  startBtn.addEventListener('click', function(e) {
+    const r = document.createElement('span');
+    r.className = 'ripple';
+    const rect = this.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height) * 2;
+    r.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px`;
+    this.appendChild(r);
+    setTimeout(() => r.remove(), 700);
+    runWorkout();
+  });
+
+  async function countdown5(itemName) {
+    statusText.innerText = itemName;
+    subStatus.innerText = "準備してください";
+    for (let i = 5; i > 0; i--) {
+      setDisplay(i, 'highlight');
+      speak(i.toString());
+      await wait(1);
+    }
+    setDisplay('始め', 'highlight');
+    speak('始め');
+    await wait(1);
+  }
+
+  async function runWorkout() {
+    if (!menu.length) { alert("種目を追加してください"); return; }
+    startBtn.disabled = true;
+    setIndicators.innerHTML = '';
+    setProgress(0);
+    const SETS = Math.max(1, +setsInput.value || 3);
+    const PREP_SEC = Math.max(8, +prepInput.value || 10);
+    const totalSteps = menu.reduce((acc, item) => acc + item.counts * SETS, 0);
+    let stepsDone = 0;
+
+    speak(menu[0].read || menu[0].name);
+    await wait(1);
+    await wait(1);
+    await countdown5(menu[0].name);
+
+    for (let s = 1; s <= SETS; s++) {
+      renderSetDots(SETS, s);
+      for (let mi = 0; mi < menu.length; mi++) {
+        const item = menu[mi];
+        const isLast = s === SETS && mi === menu.length - 1;
+        statusText.innerText = item.name;
+        subStatus.innerText = `第 ${s} セット`;
+        setDisplay('GO', 'highlight');
+        await wait(0.8);
+        for (let c = 1; c <= item.counts; c++) {
+          setDisplay(c);
+          triggerPop();
+          speak(c.toString());
+          stepsDone++;
+          setProgress(Math.round(stepsDone / totalSteps * 100));
+          await wait(item.interval || 2);
+        }
+        if (isLast) {
+          statusText.innerText = "全メニュー終了！";
+          subStatus.innerText = "お疲れ様でした！";
+          speak("全メニュー終了です。お疲れ様でした！");
+          setDisplay('FINISH', 'finish');
+          setProgress(100);
+          renderSetDots(SETS, SETS + 1);
+        } else {
+          const nextItem = menu[(mi + 1) % menu.length];
+          const FIXED = 8;
+          statusText.innerText = "休憩中";
+          subStatus.innerText = "姿勢を整えてください";
+          for (let r = PREP_SEC; r > FIXED; r--) {
+            setDisplay(`${r}`, 'rest');
+            await wait(1);
+          }
+          setDisplay('', 'rest');
+          await wait(1);
+          speak(nextItem.read || nextItem.name);
+          await wait(1);
+          await countdown5(nextItem.name);
+        }
+      }
+    }
+    startBtn.disabled = false;
+  }
+</script>
+</body>
+</html>
